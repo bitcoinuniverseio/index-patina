@@ -10,8 +10,11 @@
 # better-sqlite3 is a native module. The build stage installs a compiler for it
 # and the runtime stage carries only the compiled result.
 
-FROM node:24-bookworm-slim AS build
+FROM node:24.18.1-bookworm-slim AS build
 WORKDIR /srv/index-patina
+
+RUN npm install --global --no-audit --no-fund npm@11.16.0 \
+ && test "$(npm --version)" = "11.16.0"
 
 RUN apt-get update \
  && apt-get install --yes --no-install-recommends python3 make g++ ca-certificates \
@@ -21,8 +24,8 @@ COPY package.json package-lock.json* ./
 COPY vendor ./vendor
 COPY scripts ./scripts
 COPY SOURCE-PROVENANCE.json ./SOURCE-PROVENANCE.json
-RUN npm install --omit=dev --no-audit --no-fund && cp -r node_modules /tmp/node_modules_prod
-RUN npm install --no-audit --no-fund
+RUN npm ci --omit=dev --no-audit --no-fund && cp -r node_modules /tmp/node_modules_prod
+RUN npm ci --no-audit --no-fund
 RUN node scripts/verify-vendor.mjs
 
 COPY tsconfig.json tsconfig.build.json ./
@@ -31,9 +34,12 @@ COPY bin ./bin
 RUN npm run build
 
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:24.18.1-bookworm-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /srv/index-patina
+
+RUN npm install --global --no-audit --no-fund npm@11.16.0 \
+ && test "$(npm --version)" = "11.16.0"
 
 RUN groupadd --system --gid 10001 patina \
  && useradd --system --uid 10001 --gid patina --home /srv patina \
