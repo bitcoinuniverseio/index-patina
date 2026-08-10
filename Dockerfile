@@ -10,11 +10,11 @@
 # better-sqlite3 is a native module. The build stage installs a compiler for it
 # and the runtime stage carries only the compiled result.
 
-FROM node:24.18.1-bookworm-slim AS build
+FROM node:24.19.0-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS build
 WORKDIR /srv/index-patina
 
-RUN npm install --global --no-audit --no-fund npm@11.16.0 \
- && test "$(npm --version)" = "11.16.0"
+RUN npm install --global --no-audit --no-fund npm@11.17.0 \
+ && test "$(npm --version)" = "11.17.0"
 
 RUN apt-get update \
  && apt-get install --yes --no-install-recommends python3 make g++ ca-certificates \
@@ -34,12 +34,12 @@ COPY bin ./bin
 RUN npm run build
 
 
-FROM node:24.18.1-bookworm-slim AS runtime
+FROM node:24.19.0-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS runtime
 ENV NODE_ENV=production
 WORKDIR /srv/index-patina
 
-RUN npm install --global --no-audit --no-fund npm@11.16.0 \
- && test "$(npm --version)" = "11.16.0"
+RUN npm install --global --no-audit --no-fund npm@11.17.0 \
+ && test "$(npm --version)" = "11.17.0"
 
 RUN groupadd --system --gid 10001 patina \
  && useradd --system --uid 10001 --gid patina --home /srv patina \
