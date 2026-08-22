@@ -15,11 +15,19 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, universe-ci]
     timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - name: Check out the indexer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -29,8 +37,8 @@ jobs:
       - name: Pin npm
         run: |
           npm install --global npm@11.17.0
-          test "$(node --version)" = "v24.19.0"
-          test "$(npm --version)" = "11.17.0"
+          if ((node --version).Trim() -ne 'v24.19.0') { throw 'Unexpected Node version' }
+          if ((npm --version).Trim() -ne '11.17.0') { throw 'Unexpected npm version' }
 
       - name: Install
         run: npm ci --no-audit --no-fund
@@ -61,16 +69,24 @@ jobs:
           node bin/index-patina.mjs verify
 
   docker:
-    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, universe-ci, linux-container-builder]
     timeout-minutes: 20
     steps:
       - name: Check out the indexer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: Build the image
-        run: docker build -t index-patina:ci .
-
-      - name: Run the command line inside the image
-        run: |
-          docker run --rm -e PATINA_NETWORK=regtest -e PATINA_RPC_OFFLINE=true \
-            -e PATINA_LOG_LEVEL=silent index-patina:ci status --json
+      - name: Build and verify the image
+        uses: bitcoinuniverseio/king/.github/actions/portable-container-build@d0463e3ceb2a284cc52afc76291be623f73e5477
+        with:
+          tag: index-patina:${{ github.sha }}
+          run-environment: |
+            PATINA_NETWORK=regtest
+            PATINA_RPC_OFFLINE=true
+            PATINA_LOG_LEVEL=silent
+          run-command-json: '["status","--json"]'

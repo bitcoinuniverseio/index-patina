@@ -263,6 +263,11 @@ through the offline RPC client, so the real resolver, the real reducer and the
 real store are exercised end to end. Nothing between the RPC boundary and the
 database is replaced.
 
+CI source checks run through PowerShell on the shared `universe-ci` pool. The
+image gate uses native Docker on Linux or the certified service-owned WSL
+engine on Windows, then runs the offline command-line smoke check inside the
+built Linux image before cleanup.
+
 ## Docker
 
 The image builds from this repository alone because the pinned protocol
