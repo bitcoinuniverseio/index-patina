@@ -242,7 +242,7 @@ One SQLite file, sixteen tables, all DDL in `src/migrations.ts`.
 - `artifacts`, `rings`, `carriers`, `carrier_artifacts`, `commits`,
   `invalid_events`, `attestations` hold derived state.
 - `mempool_entries`, `mempool_replacements`, `mempool_conflicts` hold the
-  provisional overlay. The mempool path never writes to a authoritative table.
+  provisional overlay. The mempool path never writes to an authoritative table.
 
 Satoshi amounts are stored as SQL `INTEGER`. The whole supply is 2.1e15
 satoshis, below 2^53, so no value loses precision.
