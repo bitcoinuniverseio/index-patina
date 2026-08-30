@@ -14,11 +14,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  route:
+    uses: bitcoinuniverseio/.github-private/.github/workflows/route.yml@develop
+    secrets: inherit
+    with:
+      plan: '{"build_and_test":"light","docker_2":"docker"}'
+
   build-and-test:
+    needs: route
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci]
+    runs-on: ${{ fromJSON(needs.route.outputs.targets).build_and_test }}
     timeout-minutes: 20
     defaults:
       run:
@@ -69,11 +76,11 @@ jobs:
           node bin/index-patina.mjs verify
 
   docker:
-    needs: build-and-test
+    needs: [route, build-and-test]
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci, linux-container-builder]
+    runs-on: ${{ fromJSON(needs.route.outputs.targets).docker_2 }}
     timeout-minutes: 20
     steps:
       - name: Check out the indexer
