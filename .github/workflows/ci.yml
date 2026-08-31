@@ -18,7 +18,11 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci]
+    # This repository is public and the capacity router is a reusable workflow
+    # in the private .github-private, which a public caller cannot resolve.
+    # Target the ultra pool directly until the router is published somewhere a
+    # public repository can reach.
+    runs-on: [self-hosted, linux-ultra]
     timeout-minutes: 20
     defaults:
       run:
@@ -73,7 +77,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci, linux-container-builder]
+    runs-on: [self-hosted, linux-ultra, linux-container-builder]
     timeout-minutes: 20
     steps:
       - name: Check out the indexer
@@ -81,8 +85,12 @@ jobs:
         with:
           persist-credentials: false
 
+      # The action lives in the public universe-ci-actions mirror: this
+      # repository is public and cannot resolve actions from the private king.
+      # The pin carries the same pinned Docker Engine install as
+      # king@af72b0fa.
       - name: Build and verify the image
-        uses: bitcoinuniverseio/king/.github/actions/portable-container-build@d0463e3ceb2a284cc52afc76291be623f73e5477
+        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@dacc58b51a97befaea3a803f56f1985c50cb36ec
         with:
           tag: index-patina:${{ github.sha }}
           run-environment: |
