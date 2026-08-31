@@ -82,7 +82,7 @@ jobs:
           persist-credentials: false
 
       - name: Build and verify the image
-        uses: bitcoinuniverseio/king/.github/actions/portable-container-build@d0463e3ceb2a284cc52afc76291be623f73e5477
+        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@be40d57392687ec250a02b1096cb1c4db5782b74
         with:
           tag: index-patina:${{ github.sha }}
           run-environment: |
