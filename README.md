@@ -161,7 +161,7 @@ serialize as numbers. The full document is at `/openapi.json`.
 | `GET /shatter` | rings closed, newest first |
 | `GET /invalid-events` | rejected attempts with frozen reason codes, filter by `reason` |
 | `GET /stats` | counters, tier distribution, invalid event breakdown |
-| `GET /mempool` | provisional overlay, never part of canonical state |
+| `GET /mempool` | provisional overlay, never part of authoritative state |
 | `POST /safety/outpoints` | classify outpoints as `carrier`, `commit` or `none`, nothing stored |
 | `GET /health`, `GET /ready`, `GET /metrics` | also served at the root path |
 
@@ -242,7 +242,7 @@ One SQLite file, sixteen tables, all DDL in `src/migrations.ts`.
 - `artifacts`, `rings`, `carriers`, `carrier_artifacts`, `commits`,
   `invalid_events`, `attestations` hold derived state.
 - `mempool_entries`, `mempool_replacements`, `mempool_conflicts` hold the
-  provisional overlay. The mempool path never writes to a canonical table.
+  provisional overlay. The mempool path never writes to an authoritative table.
 
 Satoshi amounts are stored as SQL `INTEGER`. The whole supply is 2.1e15
 satoshis, below 2^53, so no value loses precision.
