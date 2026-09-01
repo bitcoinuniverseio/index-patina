@@ -4,7 +4,7 @@
   "name": "PATINA indexer",
   "classification": "indexer",
   "repository": "bitcoinuniverseio/index-patina",
-  "documentationUrl": "https://docs.bitcoinuniverse.io/infrastructure/index-patina/",
+  "documentationUrl": "https://docs.bitcoinuniverse.io/developers/interfaces/",
   "docsRoot": "docs",
   "sourceRef": "main",
   "releasedRef": "index-patina-0.2.0",
