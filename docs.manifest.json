@@ -14,7 +14,9 @@
     {
       "chain": "bitcoin",
       "networks": [
-        "mainnet"
+        "mainnet",
+        "signet",
+        "regtest"
       ]
     }
   ],
@@ -23,7 +25,8 @@
   ],
   "audiences": [
     "indexer-operator",
-    "app-developer"
+    "app-developer",
+    "security-verifier"
   ],
   "contracts": {
     "openapi": [
@@ -34,8 +37,8 @@
     "bitcoinuniverseio"
   ],
   "lastVerified": {
-    "commit": "0fd503c6beee79338ba3d346c67dd63c75eec05a",
-    "timestamp": "2026-09-01T02:00:00Z"
+    "commit": "fa1e2e02bbd8d1b69f8b9ca7bb3d3aaafed262c2",
+    "timestamp": "2026-09-01T12:40:00Z"
   },
   "securityClassification": "public"
 }
