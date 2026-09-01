@@ -33,20 +33,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24.19.0'
-
-      - name: Pin npm
-        run: |
-          npm install --global npm@11.17.0
-          if ((node --version).Trim() -ne 'v24.19.0') { throw 'Unexpected Node version' }
-          if ((npm --version).Trim() -ne '11.17.0') { throw 'Unexpected npm version' }
-
-      - name: Install
-        run: npm ci --no-audit --no-fund
-
+      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@8e24bc760556caa5ec8c7c497baaad2e9adcc912
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
@@ -85,12 +72,10 @@ jobs:
         with:
           persist-credentials: false
 
-      # The action lives in the public universe-ci-actions mirror: this
-      # repository is public and cannot resolve actions from the private king.
-      # The pin carries the same pinned Docker Engine install as
-      # king@af72b0fa.
+      # This public repository resolves the portable action from the public
+      # universe-ci-actions mirror at the pin validated on develop.
       - name: Build and verify the image
-        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@dacc58b51a97befaea3a803f56f1985c50cb36ec
+        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@be40d57392687ec250a02b1096cb1c4db5782b74
         with:
           tag: index-patina:${{ github.sha }}
           run-environment: |
