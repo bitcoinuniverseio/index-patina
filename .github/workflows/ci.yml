@@ -18,7 +18,11 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci]
+    # This repository is public and the capacity router is a reusable workflow
+    # in the private .github-private, which a public caller cannot resolve.
+    # Target the ultra pool directly until the router is published somewhere a
+    # public repository can reach.
+    runs-on: [self-hosted, linux-ultra]
     timeout-minutes: 20
     defaults:
       run:
@@ -60,7 +64,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci, linux-container-builder]
+    runs-on: [self-hosted, linux-ultra, linux-container-builder]
     timeout-minutes: 20
     steps:
       - name: Check out the indexer
@@ -68,6 +72,8 @@ jobs:
         with:
           persist-credentials: false
 
+      # This public repository resolves the portable action from the public
+      # universe-ci-actions mirror at the pin validated on develop.
       - name: Build and verify the image
         uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@be40d57392687ec250a02b1096cb1c4db5782b74
         with:
