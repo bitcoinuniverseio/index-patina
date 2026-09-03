@@ -22,7 +22,7 @@ jobs:
     # in the private .github-private, which a public caller cannot resolve.
     # Target the ultra pool directly until the router is published somewhere a
     # public repository can reach.
-    runs-on: [self-hosted, linux-ultra]
+    runs-on: [self-hosted, linux, x64, universe-linux]
     timeout-minutes: 20
     defaults:
       run:
@@ -64,7 +64,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, linux-ultra, linux-container-builder]
+    runs-on: [self-hosted, linux, x64, universe-linux]
     timeout-minutes: 20
     steps:
       - name: Check out the indexer
