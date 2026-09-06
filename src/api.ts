@@ -53,6 +53,7 @@ export interface ApiDeps {
   readonly mempool?: MempoolOverlay;
   /** Chain tip as last seen from the node, or -1 when unknown. */
   tipHeight(): number;
+  tipHash(): string | null;
 }
 
 // ------------------------------------------------------------------ helpers
@@ -273,7 +274,9 @@ export class Api {
       spec_sha256: this.deps.config.deployment.specSha256,
       tip_height: tip,
       indexed_height: indexed,
-      synced: tip >= 0 && indexed >= tip,
+      tip_block_hash: this.deps.tipHash(),
+      indexed_block_hash: this.deps.store.tipBlock()?.hash ?? null,
+      synced: tip >= 0 && indexed === tip && this.deps.tipHash() !== null && this.deps.store.tipBlock()?.hash === this.deps.tipHash(),
       parser_version: PARSER_VERSION,
       indexer_version: INDEXER_VERSION,
       counters: this.counters(indexed),
@@ -695,7 +698,9 @@ export class Api {
     const integrity = this.deps.store.checkIntegrity();
     const schemaOk = integrity.missing.length === 0;
     const lag = tip < 0 ? 0 : Math.max(0, tip - indexed);
-    const ready = schemaOk && indexed >= 0 && lag <= 2;
+    const tipHash = this.deps.tipHash();
+    const forkMatches = indexed !== tip || this.deps.store.tipBlock()?.hash === tipHash;
+    const ready = schemaOk && tip >= 0 && indexed >= 0 && indexed <= tip && lag <= 2 && tipHash !== null && forkMatches;
     return json(ready ? 200 : 503, {
       ready,
       schema_ok: schemaOk,
@@ -703,6 +708,7 @@ export class Api {
       indexed_height: indexed,
       tip_height: tip,
       tip_lag: lag,
+      fork_matches: forkMatches,
     });
   }
 
@@ -723,7 +729,7 @@ export class Api {
       mempoolEntries: this.deps.mempool?.count() ?? 0,
       deepestLiveDepth: counters.deepestLiveDepth,
       endowmentTotalSats: counters.endowmentTotalSats,
-      synced: tip >= 0 && indexed >= tip,
+      synced: tip >= 0 && indexed === tip && this.deps.tipHash() !== null && this.deps.store.tipBlock()?.hash === this.deps.tipHash(),
     });
     return { status: 200, headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' }, body: text };
   }
