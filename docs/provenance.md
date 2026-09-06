@@ -63,10 +63,25 @@ npm run verify:vendor
 ```
 
 The script recomputes the tarball's SHA-256 and npm integrity, inspects the
-packed package name, version and specification hash, and checks that both
+packed package name and version, hashes the packed specification bytes, and
+checks that every shipped deployment and the vector manifest bind those exact
+bytes. It also checks that both
 `package.json` and `package-lock.json` resolve the dependency to that same
 vendored file. It runs in CI on every push and pull request, and again inside
 the Docker build.
+
+The current vendor binds protocol commit
+`bd7848da869b9be01d69cf026af3f457fd965f16` and specification digest
+`50185d0e075a44d36adc3b7bea05116b639751cd3519b659ece22cd1f5ef1d13`.
+The previous vendor used the same protocol source code with an older document
+digest. The refresh preserves those byte-identical compiled modules and packs
+the current specification, deployments and vectors. The vendor regression
+tests reject changed document bytes and stale deployment metadata.
+
+This is a source candidate. It does not migrate an existing database or change
+any running deployment. A database bound to an earlier specification must keep
+its recorded identity until an operator reviews the compatibility and upgrade
+procedure. Do not overwrite its stored hash to make a readiness check pass.
 
 Its output names both the recorded and the recomputed hash, so a mismatch is
 visible rather than inferred:

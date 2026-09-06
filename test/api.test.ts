@@ -51,6 +51,26 @@ before(async () => {
 after(() => harness.dispose());
 
 describe('api contract', () => {
+  test('status binds the indexed block to the observed node block', async () => {
+    const status = body(await get(`${BASE}/status`));
+    assert.equal(status['indexed_block_hash'], harness.store.tipBlock()?.hash);
+    assert.equal(status['tip_block_hash'], harness.indexer.knownTipHash());
+    assert.equal(status['synced'], true);
+  });
+
+  test('equal heights on different forks do not report synchronized', async () => {
+    const { Api } = await import('../src/api.js');
+    const { createLogger } = await import('../src/logger.js');
+    const api = new Api({ config: harness.config, store: harness.store, metrics: harness.metrics,
+      logger: createLogger('silent'), tipHeight: () => harness.store.indexedHeight(),
+      tipHash: () => 'ff'.repeat(32) });
+    const status = body(await api.handle(apiRequest('GET', `${BASE}/status`)));
+    assert.equal(status['synced'], false);
+    assert.notEqual(status['indexed_block_hash'], status['tip_block_hash']);
+    const readiness = await api.handle(apiRequest('GET', '/ready'));
+    assert.equal(readiness.status, 503);
+    assert.equal(body(readiness)['fork_matches'], false);
+  });
   test('GET /status reports the deployment, heights and counters', async () => {
     const response = await get(`${BASE}/status`);
     assert.equal(response.status, 200);
