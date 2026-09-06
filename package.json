@@ -30,7 +30,7 @@
     "test": "node --test --test-reporter=spec \"dist/test/*.test.js\"",
     "start": "node bin/index-patina.mjs serve",
     "sync": "node bin/index-patina.mjs sync",
-    "verify:vendor": "node scripts/verify-vendor.mjs",
+    "verify:vendor": "node scripts/verify-vendor.mjs && node --test scripts/verify-vendor.test.mjs",
     "verify": "npm run verify:vendor && npm run typecheck && npm run build && npm test"
   },
   "dependencies": {
