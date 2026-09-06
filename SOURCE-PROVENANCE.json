@@ -7,13 +7,13 @@
     "version": "1.1.0",
     "resolution": "file:vendor/bitcoinuniverse-patina-1.1.0.tgz",
     "sourceRepository": "https://github.com/bitcoinuniverse/patina.git",
-    "sourceCommit": "e9a73ec7c4dd97f47cee1a2b501d123827a36429",
+    "sourceCommit": "bd7848da869b9be01d69cf026af3f457fd965f16",
     "vendoredTarball": {
       "file": "vendor/bitcoinuniverse-patina-1.1.0.tgz",
-      "sha256": "a53792688eaa37bfcb022baf48a67bf80206b4647f8ff8e9100b0cc15dbf4477",
+      "sha256": "bd58e666dc1ed60ee928eb5b5724999a2c1cb4433291ca266bed8f2c610773c4",
       "packageName": "@bitcoinuniverse/patina",
       "packageVersion": "1.1.0",
-      "specSha256": "e3f094cec0f870d1660e0e3042f1fdd4ad4a41af856abdff654f3aafb9aca9b8",
+      "specSha256": "50185d0e075a44d36adc3b7bea05116b639751cd3519b659ece22cd1f5ef1d13",
       "verifiedBy": "scripts/verify-vendor.mjs"
     },
     "note": "Vendored as a packed tarball committed to this repository, so the dependency resolves for anyone who clones this repository without also checking out the protocol repository at a matching relative path. scripts/verify-vendor.mjs recomputes SHA-256 and npm integrity, inspects the packed name/version/spec hash, and checks package and lockfile resolutions on every verify run.",
