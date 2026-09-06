@@ -47,7 +47,17 @@ jobs:
         run: npm run build
 
       - name: Test
+        env:
+          PATINA_WIRE_FIXTURE_OUTPUT: ${{ runner.temp }}/patina-wire.json
         run: npm test
+
+      - name: Preserve controlled API contract evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: patina-wire-contract
+          path: ${{ runner.temp }}/patina-wire.json
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Command line smoke test
         env:
