@@ -75,7 +75,9 @@ jobs:
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux, x64, universe-super]
-    timeout-minutes: 20
+    # Cold Docker layers on the shared fleet exceeded twenty minutes while
+    # still making progress; retain a bounded run with room for native SQLite.
+    timeout-minutes: 45
     steps:
       - name: Check out the indexer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
