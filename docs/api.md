@@ -74,6 +74,8 @@ curl -s http://127.0.0.1:4180/patina/status
   "spec_sha256": "...",
   "tip_height": 412,
   "indexed_height": 412,
+  "tip_block_hash": "...",
+  "indexed_block_hash": "...",
   "synced": true,
   "parser_version": "patina/1.1.0",
   "indexer_version": "0.2.0",
@@ -87,6 +89,12 @@ curl -s http://127.0.0.1:4180/patina/status
   }
 }
 ```
+
+Status includes both the last node-observed tip hash and the indexed block
+hash. Either is null before it is known. `synced` requires equal heights and
+equal known hashes, so different forks at the same height do not report
+success. Consumers that combine several responses must check snapshot hashes
+as well as heights and retry if the snapshot changes between reads.
 
 Page through artifacts:
 
