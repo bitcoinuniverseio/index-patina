@@ -18,7 +18,11 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci]
+    # This repository is public and the capacity router is a reusable workflow
+    # in the private .github-private, which a public caller cannot resolve.
+    # Target the ultra pool directly until the router is published somewhere a
+    # public repository can reach.
+    runs-on: [self-hosted, linux, x64, universe-super]
     timeout-minutes: 20
     defaults:
       run:
@@ -29,20 +33,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24.19.0'
-
-      - name: Pin npm
-        run: |
-          npm install --global npm@11.17.0
-          if ((node --version).Trim() -ne 'v24.19.0') { throw 'Unexpected Node version' }
-          if ((npm --version).Trim() -ne '11.17.0') { throw 'Unexpected npm version' }
-
-      - name: Install
-        run: npm ci --no-audit --no-fund
-
+      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@8e24bc760556caa5ec8c7c497baaad2e9adcc912
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
@@ -56,7 +47,17 @@ jobs:
         run: npm run build
 
       - name: Test
+        env:
+          PATINA_WIRE_FIXTURE_OUTPUT: ${{ runner.temp }}/patina-wire.json
         run: npm test
+
+      - name: Preserve controlled API contract evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: patina-wire-contract
+          path: ${{ runner.temp }}/patina-wire.json
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Command line smoke test
         env:
@@ -73,16 +74,20 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-ci, linux-container-builder]
-    timeout-minutes: 20
+    runs-on: [self-hosted, linux, x64, universe-super]
+    # Cold Docker layers on the shared fleet exceeded twenty minutes while
+    # still making progress; retain a bounded run with room for native SQLite.
+    timeout-minutes: 45
     steps:
       - name: Check out the indexer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
+      # This public repository resolves the portable action from the public
+      # universe-ci-actions mirror at the pin validated on develop.
       - name: Build and verify the image
-        uses: bitcoinuniverseio/king/.github/actions/portable-container-build@d0463e3ceb2a284cc52afc76291be623f73e5477
+        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@be40d57392687ec250a02b1096cb1c4db5782b74
         with:
           tag: index-patina:${{ github.sha }}
           run-environment: |
