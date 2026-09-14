@@ -74,6 +74,7 @@ export function createHarness(options: HarnessOptions = {}): Harness {
     logger,
     mempool: indexer.mempool,
     tipHeight: () => indexer.knownTipHeight(),
+    tipHash: () => indexer.knownTipHash(),
   });
 
   return {
@@ -112,6 +113,7 @@ export function reopen(harness: Harness): Harness {
     logger,
     mempool: indexer.mempool,
     tipHeight: () => indexer.knownTipHeight(),
+    tipHash: () => indexer.knownTipHash(),
   });
   return {
     ...harness,

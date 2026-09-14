@@ -68,6 +68,7 @@ export class Indexer {
 
   private snapshot: Snapshot = initialState();
   private tipHeight = -1;
+  private tipHash: string | null = null;
   private running = false;
   private stopRequested = false;
   private loopDone: Promise<void> | null = null;
@@ -117,10 +118,15 @@ export class Indexer {
     return this.tipHeight;
   }
 
+  knownTipHash(): string | null {
+    return this.tipHash;
+  }
+
   async refreshTip(): Promise<number> {
     const info = await this.rpc.getBlockchainInfo();
     this.metrics.recordRpcCall(false);
     this.tipHeight = info.blocks;
+    this.tipHash = /^[0-9a-f]{64}$/.test(info.bestblockhash) ? info.bestblockhash : null;
     return this.tipHeight;
   }
 

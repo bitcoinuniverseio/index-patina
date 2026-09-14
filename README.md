@@ -8,7 +8,40 @@ nothing.
 
 Every consensus decision comes from `@bitcoinuniverse/patina`. This repository
 contains no protocol rules. If you are looking for what makes a SEED valid or
-how a successor is chosen, read the protocol package, not this one.
+how a successor is chosen, read the protocol package, not this one:
+<https://bitcoinuniverseio.github.io/patina/>.
+
+PATINA is a provenance layer. It accumulates verifiable history over an artifact
+that already exists; it does not mint, it accrues. No Universe product
+implements a PATINA trade path, and this service is read only. See
+[docs/ecosystem.md](docs/ecosystem.md).
+
+## Documentation
+
+| Page | Covers |
+| --- | --- |
+| [docs/architecture.md](docs/architecture.md) | How a block becomes state, module by module |
+| [docs/configuration.md](docs/configuration.md) | Every environment variable, with defaults and bounds |
+| [docs/api.md](docs/api.md) | The read API in full |
+| [docs/data-model.md](docs/data-model.md) | The seventeen tables and why they are shaped that way |
+| [docs/sync.md](docs/sync.md) | Backfill, reorg handling, the mempool overlay |
+| [docs/operations.md](docs/operations.md) | Commands, monitoring, backup, upgrade, sizing, troubleshooting |
+| [docs/testing.md](docs/testing.md) | How to run the suite and what it covers |
+| [docs/releases.md](docs/releases.md) | Versioning and the release process |
+| [docs/provenance.md](docs/provenance.md) | `SOURCE-PROVENANCE.json` and the protocol boundary |
+| [docs/deviations.md](docs/deviations.md) | This service against the PATINA implementation baseline |
+
+Also: [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md),
+[SUPPORT.md](SUPPORT.md).
+
+## What this is not
+
+- Not a wallet. No keys, no signing, no broadcasting.
+- Not a marketplace, a mint or an issuance service.
+- Not the protocol. Rules live in
+  [bitcoinuniverseio/patina](https://github.com/bitcoinuniverseio/patina).
+- Not a Bitcoin node. It needs one, with `-txindex=1`.
+- Not a general purpose block explorer. It answers PATINA questions only.
 
 ## How it works
 
@@ -235,7 +268,8 @@ startup. If `verify` is clean, the state is correct.
 
 ## Data model
 
-One SQLite file, sixteen tables, all DDL in `src/migrations.ts`.
+One SQLite file, seventeen tables, all DDL in `src/migrations.ts`. Full detail in
+[docs/data-model.md](docs/data-model.md).
 
 - `blocks`, `transactions`, `block_undo`, `checkpoints`, `reorgs`,
   `indexer_state`, `schema_migrations` track ingest.
@@ -258,15 +292,21 @@ npm run build
 npm test
 ```
 
+`npm run verify` runs the whole gate: vendor check, typecheck, build, tests.
+
 The test suite runs without a Bitcoin node. It drives a synthetic regtest chain
 through the offline RPC client, so the real resolver, the real reducer and the
 real store are exercised end to end. Nothing between the RPC boundary and the
-database is replaced.
+database is replaced. It is 81 tests across 12 suites in 10 files, and takes
+about ten seconds. [docs/testing.md](docs/testing.md) says what each file covers.
 
-CI source checks run through PowerShell on the shared `universe-ci` pool. The
-image gate uses native Docker on Linux or the certified service-owned WSL
-engine on Windows, then runs the offline command-line smoke check inside the
-built Linux image before cleanup.
+CI runs on the self-hosted Linux fleet, never on a GitHub-hosted runner. The
+source job runs through PowerShell on the `linux-ultra` pool; the image job
+builds on a `linux-container-builder` runner and runs the offline command line
+smoke check inside the built Linux image before cleanup.
+
+Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Questions:
+[SUPPORT.md](SUPPORT.md).
 
 ## Docker
 

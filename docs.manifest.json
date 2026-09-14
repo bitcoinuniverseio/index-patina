@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "index-patina",
+  "name": "PATINA indexer",
+  "classification": "indexer",
+  "repository": "bitcoinuniverseio/index-patina",
+  "documentationUrl": "https://docs.bitcoinuniverse.io/developers/interfaces/",
+  "docsRoot": "docs",
+  "sourceRef": "main",
+  "releasedRef": "index-patina-0.2.0",
+  "releaseVersion": "0.2.0",
+  "lifecycle": "stable",
+  "chains": [
+    {
+      "chain": "bitcoin",
+      "networks": [
+        "mainnet",
+        "signet",
+        "regtest"
+      ]
+    }
+  ],
+  "protocols": [
+    "patina"
+  ],
+  "audiences": [
+    "indexer-operator",
+    "app-developer",
+    "security-verifier"
+  ],
+  "contracts": {
+    "openapi": [
+      "src/openapi.ts"
+    ]
+  },
+  "owners": [
+    "bitcoinuniverseio"
+  ],
+  "lastVerified": {
+    "commit": "fa1e2e02bbd8d1b69f8b9ca7bb3d3aaafed262c2",
+    "timestamp": "2026-09-01T12:40:00Z"
+  },
+  "securityClassification": "public"
+}

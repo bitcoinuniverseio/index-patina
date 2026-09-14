@@ -153,6 +153,7 @@ async function commandServe(runtime: Runtime, apiOnly: boolean): Promise<number>
     logger,
     mempool: indexer.mempool,
     tipHeight: () => indexer.knownTipHeight(),
+    tipHash: () => indexer.knownTipHash(),
   });
 
   const server = createNodeServer((request) => api.handle(request));
