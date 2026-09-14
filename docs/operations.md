@@ -235,3 +235,12 @@ machine without a working node-gyp toolchain the install script can still try to
 compile and fail. `npm ci --ignore-scripts` installs the shipped prebuild, which
 is enough to typecheck, build and run the test suite. The Docker build installs
 a compiler in its build stage and does not need this.
+
+### Specification documentation updates
+
+Keep the deployment file and its specification hash used by an existing database.
+A documentation-only protocol revision changes the packaged specification digest;
+it does not change recorded deployment identity or require a reindex. Set
+`PATINA_DEPLOYMENT_FILE` to the existing deployment record before upgrading a
+service that previously relied on a packaged default. Never rewrite the database
+specification binding to match a newer document.
