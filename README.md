@@ -50,7 +50,7 @@ npm run verify:vendor
 npm run build
 ```
 
-## BIP-110 commit leaves
+## Commit leaves
 
 PATINA 1.1.0 constructs new reveals with the reduced-data leaf
 `<claimant> OP_CHECKSIG <commitment> OP_DROP`. Its parser permanently accepts
