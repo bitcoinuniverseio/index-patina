@@ -32,7 +32,7 @@ interface PrevoutRecord {
 }
 
 class BoundedMap<K, V> {
-  private readonly map = new Map<K, V>();
+  private map = new Map<K, V>();
   constructor(private readonly limit: number) {}
 
   get(key: K): V | undefined {
@@ -47,10 +47,11 @@ class BoundedMap<K, V> {
   set(key: K, value: V): void {
     if (this.map.has(key)) this.map.delete(key);
     this.map.set(key, value);
-    while (this.map.size > this.limit) {
-      const oldest = this.map.keys().next();
-      if (oldest.done) break;
-      this.map.delete(oldest.value);
+    // Evict in batches by rebuilding. Deleting the oldest entry one at a time
+    // leaves tombstones that every later keys().next() rescans, which is
+    // quadratic on blocks with tens of thousands of outputs.
+    if (this.map.size > this.limit + Math.max(1, this.limit >> 3)) {
+      this.map = new Map([...this.map].slice(-this.limit));
     }
   }
 
