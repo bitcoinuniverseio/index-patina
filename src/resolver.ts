@@ -211,6 +211,12 @@ export class Resolver {
     return this.resolveBlockByHash(hash);
   }
 
+  /** Fetch a block by height without resolving it, so fetches can run ahead of apply. */
+  async fetchRawBlockByHeight(height: number): Promise<RpcBlock> {
+    const hash = await this.call(() => this.rpc.getBlockHash(height));
+    return this.call(() => this.rpc.getBlock(hash));
+  }
+
   /** Resolve a block already fetched from Core. */
   async resolveRawBlock(block: RpcBlock): Promise<BlockView> {
     this.memoizeBlockOutputs(block);
