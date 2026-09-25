@@ -32,7 +32,7 @@ interface PrevoutRecord {
 }
 
 class BoundedMap<K, V> {
-  private readonly map = new Map<K, V>();
+  private map = new Map<K, V>();
   constructor(private readonly limit: number) {}
 
   get(key: K): V | undefined {
@@ -47,10 +47,11 @@ class BoundedMap<K, V> {
   set(key: K, value: V): void {
     if (this.map.has(key)) this.map.delete(key);
     this.map.set(key, value);
-    while (this.map.size > this.limit) {
-      const oldest = this.map.keys().next();
-      if (oldest.done) break;
-      this.map.delete(oldest.value);
+    // Evict in batches by rebuilding. Deleting the oldest entry one at a time
+    // leaves tombstones that every later keys().next() rescans, which is
+    // quadratic on blocks with tens of thousands of outputs.
+    if (this.map.size > this.limit + Math.max(1, this.limit >> 3)) {
+      this.map = new Map([...this.map].slice(-this.limit));
     }
   }
 
@@ -208,6 +209,12 @@ export class Resolver {
   async resolveBlockByHeight(height: number): Promise<ResolvedBlock> {
     const hash = await this.call(() => this.rpc.getBlockHash(height));
     return this.resolveBlockByHash(hash);
+  }
+
+  /** Fetch a block by height without resolving it, so fetches can run ahead of apply. */
+  async fetchRawBlockByHeight(height: number): Promise<RpcBlock> {
+    const hash = await this.call(() => this.rpc.getBlockHash(height));
+    return this.call(() => this.rpc.getBlock(hash));
   }
 
   /** Resolve a block already fetched from Core. */
