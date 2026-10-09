@@ -211,7 +211,9 @@ export class CoreRpcClient implements BitcoinRpc {
   }
 
   getBlock(hash: string): Promise<RpcBlock> {
-    return this.call<RpcBlock>('getblock', [hash, 2]);
+    // Verbosity 3 carries each input's prevout (value, script, creation
+    // height), so the resolver needs no getrawtransaction per input.
+    return this.call<RpcBlock>('getblock', [hash, 3]);
   }
 
   getRawTransaction(txid: string, blockhash?: string): Promise<RpcTransaction> {

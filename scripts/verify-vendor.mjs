@@ -34,7 +34,7 @@ function sha512Integrity(bytes) {
   return `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 }
 
-function packedJson(bytes, wantedName) {
+export function packedFile(bytes, wantedName) {
   const tar = gunzipSync(bytes);
   for (let offset = 0; offset + 512 <= tar.length; ) {
     const name = tar.toString('utf8', offset, offset + 100).replace(/\0.*$/s, '');
@@ -44,11 +44,28 @@ function packedJson(bytes, wantedName) {
     if (!Number.isSafeInteger(size) || size < 0) throw new Error(`invalid tar size for ${name}`);
     const bodyOffset = offset + 512;
     if (name === wantedName) {
-      return JSON.parse(tar.toString('utf8', bodyOffset, bodyOffset + size));
+      if (bodyOffset + size > tar.length) throw new Error(`truncated tar entry ${name}`);
+      return tar.subarray(bodyOffset, bodyOffset + size);
     }
     offset = bodyOffset + Math.ceil(size / 512) * 512;
   }
   throw new Error(`${wantedName} is missing from the vendored tarball`);
+}
+
+function packedJson(bytes, wantedName) {
+  return JSON.parse(packedFile(bytes, wantedName).toString('utf8'));
+}
+
+export function verifySpecification(bytes, expectedHash) {
+  const actual = sha256(packedFile(bytes, 'package/patina-protocol.md'));
+  if (actual !== expectedHash) throw new Error('packed specification bytes do not match the recorded specSha256');
+  for (const network of ['regtest', 'signet', 'mainnet']) {
+    const deployment = packedJson(bytes, `package/deployments/${network}.json`);
+    if (deployment.spec_sha256 !== actual) throw new Error(`packed ${network} deployment does not bind the packed specification`);
+  }
+  if (packedJson(bytes, 'package/vectors/manifest.json').specSha256 !== actual) {
+    throw new Error('packed vector manifest does not bind the packed specification');
+  }
 }
 
 function fail(problems) {
@@ -115,6 +132,7 @@ function main() {
   }
 
   try {
+    verifySpecification(bytes, vendored.specSha256);
     const packedManifest = packedJson(bytes, 'package/package.json');
     const packedVectors = packedJson(bytes, 'package/vectors/manifest.json');
     if (packedManifest.name !== depName) {
@@ -151,4 +169,4 @@ function main() {
   process.stdout.write('vendor check ok\n');
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

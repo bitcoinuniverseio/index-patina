@@ -18,7 +18,7 @@
 import type { AppConfig } from './config.js';
 import type { Logger } from './logger.js';
 import type { Metrics } from './metrics.js';
-import type { BitcoinRpc } from './rpc.js';
+import type { BitcoinRpc, RpcBlock } from './rpc.js';
 import { Resolver, type ResolvedBlock } from './resolver.js';
 import { Store, StoreError } from './store.js';
 import { MempoolOverlay } from './mempool.js';
@@ -40,6 +40,9 @@ export interface IndexerOptions {
   readonly metrics: Metrics;
   readonly resolver?: Resolver;
 }
+
+/** Raw blocks requested ahead of the one being applied. */
+const PREFETCH_DEPTH = 4;
 
 export class ReorgTooDeepError extends Error {
   constructor(depth: number, limit: number) {
@@ -68,6 +71,7 @@ export class Indexer {
 
   private snapshot: Snapshot = initialState();
   private tipHeight = -1;
+  private tipHash: string | null = null;
   private running = false;
   private stopRequested = false;
   private loopDone: Promise<void> | null = null;
@@ -117,10 +121,15 @@ export class Indexer {
     return this.tipHeight;
   }
 
+  knownTipHash(): string | null {
+    return this.tipHash;
+  }
+
   async refreshTip(): Promise<number> {
     const info = await this.rpc.getBlockchainInfo();
     this.metrics.recordRpcCall(false);
     this.tipHeight = info.blocks;
+    this.tipHash = /^[0-9a-f]{64}$/.test(info.bestblockhash) ? info.bestblockhash : null;
     return this.tipHeight;
   }
 
@@ -286,10 +295,29 @@ export class Indexer {
     let applied = 0;
     let next = this.store.indexedHeight() === -1 ? this.config.indexer.startHeight : this.store.indexedHeight() + 1;
 
+    // Raw blocks are fetched a few heights ahead so Core serializes the next
+    // block while this one is applied. Resolution and apply stay in order, and
+    // a prefetched block from a stale branch fails the prevHash check below.
+    const ahead = new Map<number, Promise<RpcBlock>>();
+    const fetchAhead = (height: number): Promise<RpcBlock> => {
+      let pending = ahead.get(height);
+      if (pending === undefined) {
+        pending = this.resolver.fetchRawBlockByHeight(height);
+        pending.catch(() => {});
+        ahead.set(height, pending);
+      }
+      return pending;
+    };
+
     while (next <= tip && applied < limit && !this.stopRequested) {
-      const { raw, view } = await this.fetchBlockAtHeight(next);
+      const last = Math.min(tip, next + PREFETCH_DEPTH, next + (limit - applied) - 1);
+      for (let height = next + 1; height <= last; height += 1) fetchAhead(height);
+      const raw = await fetchAhead(next);
+      ahead.delete(next);
+      const view = await this.resolver.resolveRawBlock(raw);
       const storedTip = this.store.tipBlock();
       if (storedTip !== null && view.prevHash !== undefined && view.prevHash !== storedTip.hash) {
+        ahead.clear();
         rolledBack += await this.handleReorg();
         next = this.store.indexedHeight() === -1 ? this.config.indexer.startHeight : this.store.indexedHeight() + 1;
         continue;

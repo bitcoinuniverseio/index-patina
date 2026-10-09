@@ -15,7 +15,7 @@ import { createHarness, testConfig } from './fixtures/harness.js';
 const CLAIMANT = '11'.repeat(32);
 const COMMITMENT = '22'.repeat(32);
 
-describe('BIP-110 commit-leaf compatibility', () => {
+describe('Commit-leaf history preservation', () => {
   test('new construction uses reduced data while both encodings remain parseable', () => {
     const legacy = buildLegacyCommitLeafScript(CLAIMANT, COMMITMENT);
     const reduced = buildReducedDataCommitLeafScript(CLAIMANT, COMMITMENT);
