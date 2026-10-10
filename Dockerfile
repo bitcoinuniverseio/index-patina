@@ -31,6 +31,9 @@ RUN node scripts/verify-vendor.mjs
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY bin ./bin
+# COPY keeps the checkout's file modes, and a runner with a restrictive umask
+# leaves them unreadable to the unprivileged runtime user.
+RUN chmod -R a+rX bin package.json
 RUN npm run build
 
 
