@@ -194,6 +194,27 @@ export function buildOpenApiDocument(options: OpenApiOptions): unknown {
         responses: { '200': ok('Classification. Never stored.', { type: 'object' }) },
       },
     },
+    '/v1/checkpoint': {
+      get: {
+        summary: 'Applied tip height and hash.',
+        responses: { '200': ok('Checkpoint.', { type: 'object' }), '503': ok('Not ready.', { type: 'object' }) },
+      },
+    },
+    '/v1/explorer/blocks/{height}/events': {
+      get: {
+        summary: 'One block of applied PATINA events, universe-block-events-v1.',
+        parameters: [
+          { name: 'height', in: 'path', required: true, schema: { type: 'string', pattern: '^[0-9]{1,10}$' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 500, default: 200 } },
+          { name: 'cursor', in: 'query', schema: { type: 'string' } },
+        ],
+        responses: {
+          '200': ok('Block events.', { type: 'object' }),
+          '400': ok('Invalid height, limit or cursor.', { type: 'object' }),
+          '503': ok('Not ready.', { type: 'object' }),
+        },
+      },
+    },
     [`${base}/health`]: { get: { summary: 'Liveness.', responses: { '200': ok('Alive.', { type: 'object' }) } } },
     [`${base}/ready`]: {
       get: { summary: 'Readiness.', responses: { '200': ok('Ready.', { type: 'object' }), '503': ok('Not ready.', { type: 'object' }) } },
