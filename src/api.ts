@@ -13,7 +13,7 @@ import type { AppConfig } from './config.js';
 import type { Logger } from './logger.js';
 import type { Metrics } from './metrics.js';
 import type { MempoolOverlay } from './mempool.js';
-import type { ArtifactRow, CarrierRow, InvalidEventRow, RingRow, Store } from './store.js';
+import type { ArtifactRow, BlockEventRow, CarrierRow, InvalidEventRow, RingRow, Store } from './store.js';
 import { artifactFromRow, ringFromRow } from './store.js';
 import { censusForEpoch, currentCensus, epochOf } from './census.js';
 import { buildOpenApiDocument } from './openapi.js';
@@ -31,7 +31,7 @@ import {
   TIERS,
 } from './protocol.js';
 import { INDEXER_VERSION } from './version.js';
-import { buildPage, decodeCursor, sats, type Page } from './serialize.js';
+import { buildPage, decodeCursor, encodeCursor, sats, type Page } from './serialize.js';
 import {
   HttpError,
   RateLimiter,
@@ -172,6 +172,70 @@ function accentFor(artifactId: string): string {
   return `hsl(${hue} 42% 46%)`;
 }
 
+const BLOCK_EVENTS_SCHEMA = 'universe-block-events-v1';
+const BLOCK_EVENTS_DEFAULT_LIMIT = 200;
+const BLOCK_EVENTS_MAX_LIMIT = 500;
+/** The Universe registry protocol id this authority answers for. */
+const BLOCK_EVENTS_PROTOCOL = 'patina';
+
+/** Section 15.1 event kinds in the shared block events vocabulary. */
+const BLOCK_EVENT_OPERATIONS: Record<BlockEventRow['kind'], string> = {
+  CREATED: 'mint',
+  MOVED: 'transfer',
+  RELIC: 'burn',
+};
+
+function readBlockEventsLimit(request: ApiRequest): number {
+  const raw = request.query['limit'];
+  if (raw === undefined || raw === '') return BLOCK_EVENTS_DEFAULT_LIMIT;
+  const value = /^\d{1,3}$/.test(raw) ? Number.parseInt(raw, 10) : 0;
+  if (value < 1 || value > BLOCK_EVENTS_MAX_LIMIT) {
+    throw new HttpError(400, 'invalid_limit', `limit must be an integer from 1 to ${BLOCK_EVENTS_MAX_LIMIT}`);
+  }
+  return value;
+}
+
+/** The block events cursor: the ORDER BY tuple of `Store.blockEvents`, bound to its height. */
+function readBlockEventsCursor(
+  request: ApiRequest,
+  height: number,
+): { sortIndex: number; phase: number; artifactId: string; ringIndex: number } | undefined {
+  const raw = request.query['cursor'];
+  if (raw === undefined || raw === '') return undefined;
+  const parsed = decodeCursor(raw);
+  const match = parsed === null ? null : /^(\d{1,10}):([01]):([0-9a-f]{64}):(\d{1,10})$/.exec(parsed.secondary);
+  if (parsed === null || match === null || Number(match[1]) !== height || encodeCursor(parsed) !== raw) {
+    throw new HttpError(400, 'invalid_cursor', 'cursor is not a cursor this API issued for this block');
+  }
+  return {
+    sortIndex: parsed.primary,
+    phase: Number(match[2]),
+    artifactId: match[3] as string,
+    ringIndex: Number(match[4]),
+  };
+}
+
+function serializeBlockEvent(row: BlockEventRow, txid: string): unknown {
+  return {
+    eventId: `${row.kind.toLowerCase()}:${row.artifact_id}:${row.ring_index}`,
+    protocolId: BLOCK_EVENTS_PROTOCOL,
+    txid,
+    txIndex: row.block_index,
+    operation: BLOCK_EVENT_OPERATIONS[row.kind],
+    assetId: row.artifact_id,
+    ticker: null,
+    displayName: null,
+    assetKind: 'non-fungible',
+    amountAtomic: null,
+    decimals: null,
+    fromAddress: row.from_address,
+    toAddress: row.to_address,
+    inputOutpoint: row.in_txid === null || row.in_vout === null ? null : `${row.in_txid}:${row.in_vout}`,
+    outputOutpoint: row.out_vout === null ? null : `${txid}:${row.out_vout}`,
+    inscriptionId: null,
+  };
+}
+
 // --------------------------------------------------------------------- api
 
 export class Api {
@@ -219,6 +283,8 @@ export class Api {
       r.get(`${prefix}/ready`, () => this.ready());
       r.get(`${prefix}/metrics`, () => this.metricsText());
     }
+    r.get('/v1/checkpoint', () => this.checkpoint());
+    r.get('/v1/explorer/blocks/:height/events', (req) => this.blockEvents(req));
     r.get('/openapi.json', () => this.openapi());
     r.get(`${base}/openapi.json`, () => this.openapi());
   }
@@ -693,6 +759,20 @@ export class Api {
   }
 
   private ready(): ApiResponse {
+    const readiness = this.readiness();
+    return json(readiness.ready ? 200 : 503, readiness);
+  }
+
+  /** The readiness rule `/ready` answers with; the block events routes 503 on it too. */
+  private readiness(): {
+    ready: boolean;
+    schema_ok: boolean;
+    missing_tables: string[];
+    indexed_height: number;
+    tip_height: number;
+    tip_lag: number;
+    fork_matches: boolean;
+  } {
     const indexed = this.indexedHeight();
     const tip = this.deps.tipHeight();
     const integrity = this.deps.store.checkIntegrity();
@@ -701,7 +781,7 @@ export class Api {
     const tipHash = this.deps.tipHash();
     const forkMatches = indexed !== tip || this.deps.store.tipBlock()?.hash === tipHash;
     const ready = schemaOk && tip >= 0 && indexed >= 0 && indexed <= tip && lag <= 2 && tipHash !== null && forkMatches;
-    return json(ready ? 200 : 503, {
+    return {
       ready,
       schema_ok: schemaOk,
       missing_tables: integrity.missing,
@@ -709,6 +789,78 @@ export class Api {
       tip_height: tip,
       tip_lag: lag,
       fork_matches: forkMatches,
+    };
+  }
+
+  /** The applied tip, or 503 when the service is not ready to answer. */
+  private readyCheckpoint(): { height: string; hash: string } {
+    const tip = this.readiness().ready ? this.deps.store.tipBlock() : null;
+    if (tip === null) throw new HttpError(503, 'not_ready', 'the indexer is not ready to answer');
+    return { height: String(tip.height), hash: tip.hash };
+  }
+
+  private checkpoint(): ApiResponse {
+    return json(
+      200,
+      { chain: 'bitcoin', network: this.deps.config.network, ...this.readyCheckpoint() },
+      { 'cache-control': 'no-store' },
+    );
+  }
+
+  /** `universe-block-events-v1`: one block's applied PATINA events. */
+  private blockEvents(request: ApiRequest): ApiResponse {
+    const heightRaw = request.params['height'];
+    if (!/^\d{1,10}$/.test(heightRaw)) {
+      throw new HttpError(400, 'invalid_height', 'height must be an unsigned decimal of at most 10 digits');
+    }
+    const height = Number.parseInt(heightRaw, 10);
+    const limit = readBlockEventsLimit(request);
+    const after = readBlockEventsCursor(request, height);
+    const checkpoint = this.readyCheckpoint();
+    const base = {
+      schemaVersion: BLOCK_EVENTS_SCHEMA,
+      chain: 'bitcoin',
+      network: this.deps.config.network,
+      protocols: [BLOCK_EVENTS_PROTOCOL],
+      height: String(height),
+    };
+    if (height > Number(checkpoint.height)) {
+      return json(200, {
+        ...base,
+        blockHash: null,
+        indexed: false,
+        checkpoint,
+        events: [],
+        nextCursor: null,
+        complete: false,
+      });
+    }
+    // No block row: a height below the first block this indexer applied.
+    const block = this.deps.store.getBlock(height);
+    const rows = this.deps.store.blockEvents(height, limit, after);
+    const hasMore = rows.length > limit;
+    const visible = hasMore ? rows.slice(0, limit) : rows;
+    const last = visible[visible.length - 1];
+    const events: unknown[] = [];
+    let missingTxid = false;
+    for (const row of visible) {
+      if (row.txid === null) missingTxid = true;
+      else events.push(serializeBlockEvent(row, row.txid));
+    }
+    return json(200, {
+      ...base,
+      blockHash: block?.hash ?? null,
+      indexed: true,
+      checkpoint,
+      events,
+      nextCursor:
+        hasMore && last !== undefined
+          ? encodeCursor({
+              primary: last.sort_index,
+              secondary: `${height}:${last.phase}:${last.artifact_id}:${last.ring_index}`,
+            })
+          : null,
+      complete: !hasMore && block !== null && !missingTxid,
     });
   }
 
