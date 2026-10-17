@@ -105,6 +105,22 @@ export interface BlockRow {
   applied_at: number;
 }
 
+/** One applied PATINA event of a block, as rebuilt by `Store.blockEvents`. */
+export interface BlockEventRow {
+  txid: string | null;
+  phase: number;
+  kind: 'CREATED' | 'MOVED' | 'RELIC';
+  artifact_id: string;
+  ring_index: number;
+  in_txid: string | null;
+  in_vout: number | null;
+  out_vout: number | null;
+  block_index: number | null;
+  sort_index: number;
+  from_address: string | null;
+  to_address: string | null;
+}
+
 export interface InvalidEventRow {
   id: number;
   height: number;
@@ -894,6 +910,63 @@ export class Store {
     return this.db
       .prepare(`SELECT * FROM artifacts ${clause} ORDER BY birth_height DESC, artifact_id DESC LIMIT ?`)
       .all(...params) as ArtifactRow[];
+  }
+
+  /**
+   * The applied PATINA events of one block, rebuilt from the canonical tables
+   * (section 15.1 of the specification): CREATED from an artifact born at the
+   * height, MOVED and RELIC from a ring closed at the height. A rollback
+   * deletes or restores every one of those rows, so only the current branch is
+   * ever read. Ordered by (block_index, closures before creations, artifact
+   * id, ring index), the emission order of section 11.4 except that closures
+   * inside one transaction follow artifact id rather than input index.
+   * Returns `limit + 1` rows so the caller can build the next cursor.
+   */
+  blockEvents(
+    height: number,
+    limit: number,
+    after?: { sortIndex: number; phase: number; artifactId: string; ringIndex: number },
+  ): BlockEventRow[] {
+    const params: unknown[] = [height, height, height];
+    let clause = '';
+    if (after !== undefined) {
+      clause = 'WHERE (sort_index, phase, artifact_id, ring_index) > (?, ?, ?, ?)';
+      params.push(after.sortIndex, after.phase, after.artifactId, after.ringIndex);
+    }
+    params.push(limit + 1);
+    return this.db
+      .prepare(
+        `WITH ev AS (
+           SELECT a.birth_txid AS txid, 1 AS phase, 'CREATED' AS kind, a.artifact_id, 0 AS ring_index,
+                  NULL AS in_txid, NULL AS in_vout, a.birth_vout AS out_vout
+           FROM artifacts a
+           WHERE a.birth_height = ?
+           UNION ALL
+           SELECT COALESCE(r.successor_txid, pre.spent_txid) AS txid, 0 AS phase,
+                  CASE WHEN r.relic = 1 THEN 'RELIC' ELSE 'MOVED' END AS kind,
+                  r.artifact_id, r.ring_index, pre.txid AS in_txid, pre.vout AS in_vout,
+                  r.successor_vout AS out_vout
+           FROM rings r
+           JOIN artifacts a ON a.artifact_id = r.artifact_id
+           LEFT JOIN rings p ON p.artifact_id = r.artifact_id AND p.ring_index = r.ring_index - 1
+           LEFT JOIN carriers pre
+             ON pre.txid = CASE WHEN r.ring_index = 0 THEN a.birth_txid ELSE p.successor_txid END
+            AND pre.vout = CASE WHEN r.ring_index = 0 THEN a.birth_vout ELSE p.successor_vout END
+           WHERE r.end_height = ?
+         ),
+         ordered AS (
+           SELECT ev.*, t.block_index, COALESCE(t.block_index, 2147483647) AS sort_index,
+                  cin.address AS from_address, cout.address AS to_address
+           FROM ev
+           LEFT JOIN transactions t ON t.txid = ev.txid AND t.block_height = ?
+           LEFT JOIN carriers cin ON cin.txid = ev.in_txid AND cin.vout = ev.in_vout
+           LEFT JOIN carriers cout ON cout.txid = ev.txid AND cout.vout = ev.out_vout
+         )
+         SELECT * FROM ordered ${clause}
+         ORDER BY sort_index, phase, artifact_id, ring_index
+         LIMIT ?`,
+      )
+      .all(...params) as BlockEventRow[];
   }
 
   holdings(address: string): ArtifactRow[] {

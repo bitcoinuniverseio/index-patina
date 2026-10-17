@@ -396,6 +396,8 @@ describe('api contract', () => {
       `${BASE}/health`,
       `${BASE}/ready`,
       `${BASE}/metrics`,
+      '/v1/checkpoint',
+      '/v1/explorer/blocks/{height}/events',
     ]) {
       assert.ok(paths[path] !== undefined, `openapi is missing ${path}`);
     }

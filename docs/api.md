@@ -46,6 +46,8 @@ dispatches on, so the two cannot drift apart.
 | `GET /patina/stats` | counters, tier distribution, invalid event breakdown, reorg count |
 | `GET /patina/mempool` | provisional overlay, never part of confirmed state |
 | `POST /patina/safety/outpoints` | classify outpoints as `carrier`, `commit` or `none`, nothing stored |
+| `GET /v1/checkpoint` | applied tip `{ chain, network, height, hash }`, heights as strings, 503 when not ready |
+| `GET /v1/explorer/blocks/:height/events` | one block's applied events, `universe-block-events-v1`, see below |
 | `GET /health` | liveness, also at `/patina/health` |
 | `GET /ready` | readiness, also at `/patina/ready` |
 | `GET /metrics` | Prometheus text, also at `/patina/metrics` |
@@ -60,6 +62,20 @@ dispatches on, so the two cannot drift apart.
 | `/shatter` | `end_height DESC, artifact_id DESC, ring_index DESC` | end height and `artifact_id:ring_index` |
 | `/invalid-events` | `id DESC` | row id |
 | `/leaderboard` | deepest live stretch first | not paged, `limit` only |
+
+## Block events
+
+`GET /v1/explorer/blocks/:height/events?limit=1..500&cursor=` follows the
+Universe `universe-block-events-v1` contract with protocol id `patina`. The
+events are the specification's section 15.1 events rebuilt from the canonical
+tables, so a rolled back block's events are gone with its rows: `CREATED`
+(an artifact born at the height) is `mint`, `MOVED` (a ring closed with a
+successor) is `transfer`, `RELIC` (a ring closed with none) is `burn`.
+Rejected attempts (`invalid_events`, `REJECTED` commits) are never listed.
+Order is `block_index`, closures before creations, artifact id, ring index;
+inside one transaction closures follow artifact id, not input index.
+`blockHash` is the stored block hash. A height above the applied tip answers
+`indexed: false`; a height below the first applied block is never `complete`.
 
 ## Reading state
 
