@@ -57,7 +57,7 @@ jobs:
           name: patina-wire-contract
           path: ${{ runner.temp }}/patina-wire.json
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 3
 
       - name: Command line smoke test
         env:
