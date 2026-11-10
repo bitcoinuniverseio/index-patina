@@ -20,13 +20,13 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     # This repository is public and the capacity router is a reusable workflow
     # in the private .github-private, which a public caller cannot resolve.
-    # Target the ultra pool directly until the router is published somewhere a
+    # Target the runner pool directly until the router is published somewhere a
     # public repository can reach.
     runs-on: [self-hosted, universe-runners-1]
     timeout-minutes: 20
     defaults:
       run:
-        shell: pwsh
+        shell: bash
     steps:
       - name: Check out the indexer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
