@@ -33,7 +33,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@8e24bc760556caa5ec8c7c497baaad2e9adcc912
+      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@49c5ceb7e97bd33b567513b3135e0eb5525d89e5
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
@@ -87,7 +87,7 @@ jobs:
       # This public repository resolves the portable action from the public
       # universe-ci-actions mirror at the pin validated on develop.
       - name: Build and verify the image
-        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@e5055c244ca176762bc6ef64a504c2a9b76232d6
+        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@49c5ceb7e97bd33b567513b3135e0eb5525d89e5
         with:
           tag: index-patina:${{ github.sha }}
           run-environment: |
