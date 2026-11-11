@@ -297,13 +297,12 @@ npm test
 The test suite runs without a Bitcoin node. It drives a synthetic regtest chain
 through the offline RPC client, so the real resolver, the real reducer and the
 real store are exercised end to end. Nothing between the RPC boundary and the
-database is replaced. It is 81 tests across 12 suites in 10 files, and takes
-about ten seconds. [docs/testing.md](docs/testing.md) says what each file covers.
+database is replaced. [docs/testing.md](docs/testing.md) says what each file covers.
 
 CI runs on the self-hosted Linux fleet, never on a GitHub-hosted runner. The
-source job runs through PowerShell on the `linux-ultra` pool; the image job
-builds on a `linux-container-builder` runner and runs the offline command line
-smoke check inside the built Linux image before cleanup.
+source job runs through Bash on a runner labelled `universe-runners-1`;
+the image job uses the same runner label and runs the offline command line smoke
+check inside the built Linux image before cleanup.
 
 Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Questions:
 [SUPPORT.md](SUPPORT.md).

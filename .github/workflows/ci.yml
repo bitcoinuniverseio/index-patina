@@ -20,20 +20,20 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     # This repository is public and the capacity router is a reusable workflow
     # in the private .github-private, which a public caller cannot resolve.
-    # Target the ultra pool directly until the router is published somewhere a
+    # Target the runner pool directly until the router is published somewhere a
     # public repository can reach.
-    runs-on: [self-hosted, universe-runners-1]
+    runs-on: [self-hosted, Linux, X64, universe]
     timeout-minutes: 20
     defaults:
       run:
-        shell: pwsh
+        shell: bash
     steps:
       - name: Check out the indexer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@8e24bc760556caa5ec8c7c497baaad2e9adcc912
+      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@49c5ceb7e97bd33b567513b3135e0eb5525d89e5
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
@@ -74,7 +74,7 @@ jobs:
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, universe-runners-1]
+    runs-on: [self-hosted, Linux, X64, universe]
     # Cold Docker layers on the shared fleet exceeded twenty minutes while
     # still making progress; retain a bounded run with room for native SQLite.
     timeout-minutes: 45
@@ -87,7 +87,7 @@ jobs:
       # This public repository resolves the portable action from the public
       # universe-ci-actions mirror at the pin validated on develop.
       - name: Build and verify the image
-        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@e5055c244ca176762bc6ef64a504c2a9b76232d6
+        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@49c5ceb7e97bd33b567513b3135e0eb5525d89e5
         with:
           tag: index-patina:${{ github.sha }}
           run-environment: |
