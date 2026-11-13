@@ -87,7 +87,7 @@ jobs:
       # This public repository resolves the portable action from the public
       # universe-ci-actions mirror at the pin validated on develop.
       - name: Build and verify the image
-        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@49c5ceb7e97bd33b567513b3135e0eb5525d89e5
+        uses: bitcoinuniverseio/universe-ci-actions/portable-container-build@7556a3a55f68d09bc5695c14db8329a7e29606e4
         with:
           tag: index-patina:${{ github.sha }}
           run-environment: |
