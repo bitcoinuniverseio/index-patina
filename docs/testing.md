@@ -51,6 +51,8 @@ an API over that chain.
 | `test/store.test.ts` | Migrations creating every expected table, migrating twice applying nothing, foreign keys and check constraints being enforced, the database binding to one network, parser and specification, an empty store reporting height -1, and address rendering for segwit v0 (bech32), taproot (bech32m), P2PKH and P2SH (base58) and a bare OP_RETURN (no address). |
 | `test/commit-leaf-history.test.ts` | Commit leaf history: both encodings stay parseable, and both histories index and replay to identical artifact ids and per-block state roots. |
 | `test/server.test.ts` | The `node:http` adapter serving the same handlers over a real socket, `status` and `verify` running against a fresh database, mainnet without an authorization exiting with the configuration code, and an unknown command being refused. |
+| `test/block-events.test.ts` | The checkpoint and block events API contract, including pagination and reorg behavior. |
+| `test/inscribe-wire-fixture.test.ts` | The indexer API responses consumed by Inscribe and optional export of controlled wire evidence. |
 
 ## What the suite does not cover
 
