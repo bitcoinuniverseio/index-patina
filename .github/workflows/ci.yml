@@ -33,7 +33,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@49c5ceb7e97bd33b567513b3135e0eb5525d89e5
+      - uses: bitcoinuniverseio/universe-ci-actions/universe-node-env@5138724c460417a394fda8909c5036b4e938c284
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
